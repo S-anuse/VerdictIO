@@ -19,4 +19,4 @@ function isLoggedIn(req, res, next) {
     return res.status(401).json({ message: "Invalid" });
   }
 }
-module.exports = isLoggedIn;
+module.exports = { isLoggedIn };

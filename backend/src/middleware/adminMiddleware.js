@@ -6,6 +6,8 @@ async function isAdminLoggedIn(req, res, next) {
     let user = await pool.query("SELECT role FROM users WHERE id = $1", [
       req.user.id,
     ]);
+    console.log(req.user.id);
+    console.log(user.rows);
     if (user.rows.length === 0 || user.rows[0].role !== "admin") {
       return res.status(403).json({ message: "Unauthorized" });
     }
@@ -14,4 +16,4 @@ async function isAdminLoggedIn(req, res, next) {
     return res.status(500).json({ message: "Server Error" });
   }
 }
-module.exports = isAdminLoggedIn;
+module.exports = { isAdminLoggedIn };
