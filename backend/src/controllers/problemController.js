@@ -35,10 +35,17 @@ async function getProblem(req, res) {
       message: problem,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Error retrieving problem",
-      error: error.message,
-    });
+    if (error.message === "Problem not found") {
+      res.status(404).json({
+        message: "Problem not found",
+        error: error.message,
+      });
+    } else {
+      res.status(500).json({
+        message: "Error retrieving problem",
+        error: error.message,
+      });
+    }
   }
 }
 module.exports = { createProblem, getAllProblems, getProblem };
