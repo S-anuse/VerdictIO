@@ -14,4 +14,15 @@ async function createProblem(problemData) {
   return newProblem;
 }
 
-module.exports = { createProblem };
+async function getAllProblems() {
+  return await problemRepository.getAllProblems();
+}
+
+async function getProblem(problemId) {
+  const problem = await problemRepository.getProblem(problemId);
+  if (!problem) {
+    throw new Error("Problem not found");
+  }
+  return problem;
+}
+module.exports = { createProblem, getAllProblems, getProblem };
