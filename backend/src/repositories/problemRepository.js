@@ -31,10 +31,36 @@ async function getAllProblems() {
   return result.rows;
 }
 async function getProblem(problemId) {
-  const result = await pool.query(
-    "SELECT question_input, expected_output FROM test_cases WHERE problem_id = $1 AND is_hidden = false;",
-    [problemId],
-  );
-  return result.rows;
+  try {
+    const result = await pool.query(
+      "SELECT title , description , difficulty , problem_constraints , time_limit , memory_limit , question_input, expected_output FROM test_cases JOIN problems ON test_cases.problem_id = problems.id WHERE problems.id = $1 AND test_cases.is_hidden = false;",
+      [problemId],
+    );
+    if (result.rows.length === 0) {
+      throw new Error("Problem not found");
+    }
+    const response = {
+      problem: {
+        title: result.rows[0].title,
+        description: result.rows[0].description,
+        difficulty: result.rows[0].difficulty,
+        problem_constraints: result.rows[0].problem_constraints,
+        time_limit: result.rows[0].time_limit,
+        memory_limit: result.rows[0].memory_limit,
+      },
+      sampleTestCases: [],
+    };
+
+    for (const row of result.rows) {
+      response.sampleTestCases.push({
+        question_input: row.question_input,
+        expected_output: row.expected_output,
+      });
+    }
+    return response;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
 module.exports = { createProblem, getAllProblems, getProblem };
