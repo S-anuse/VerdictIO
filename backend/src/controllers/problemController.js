@@ -2,10 +2,17 @@ const problemService = require("../services/problemService");
 
 async function createProblem(req, res) {
   const problemData = { ...req.body, created_by: req.user.id };
-  let returnedValue = await problemService.createProblem(problemData);
-  res.status(200).json({
-    message: returnedValue,
-  });
+  try {
+    let returnedValue = await problemService.createProblem(problemData);
+    res.status(201).json({
+      message: returnedValue,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error creating problem",
+      error: error.message,
+    });
+  }
 }
 
 async function getAllProblems(req, res) {
