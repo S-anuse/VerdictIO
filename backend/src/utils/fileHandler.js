@@ -10,6 +10,6 @@ const createSubmissionFile = async (submissionId, sourceCode) => {
   await fs.promises.mkdir(folderPath, { recursive: true });
   const filePath = path.join(folderPath, "main.cpp");
   await fs.promises.writeFile(filePath, sourceCode);
-  return filePath;
+  return folderPath;
 };
 module.exports = { createSubmissionFile };
