@@ -11,7 +11,8 @@ const createSubmission = async (submissionData) => {
       submission.id,
       submission.source_code,
     );
-    await executeCppCode(folderPath);
+    const output = await executeCppCode(folderPath);
+    console.log(output);
     return submission;
   } catch (err) {
     console.error(err.message);
