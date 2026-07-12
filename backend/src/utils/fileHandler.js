@@ -12,4 +12,9 @@ const createSubmissionFile = async (submissionId, sourceCode) => {
   await fs.promises.writeFile(filePath, sourceCode);
   return folderPath;
 };
-module.exports = { createSubmissionFile };
+
+const createInputFile = async (folderPath, input) => {
+  const inputFilePath = path.join(folderPath, "input.txt");
+  await fs.promises.writeFile(inputFilePath, input);
+};
+module.exports = { createSubmissionFile, createInputFile };
