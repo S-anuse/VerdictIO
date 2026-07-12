@@ -9,42 +9,41 @@ const { compileCppCode, runCppCode } = require("../utils/dockerExecutor");
 const testCaseRepository = require("../repositories/testCaseRepository");
 
 const createSubmission = async (submissionData) => {
+  const submission =
+    await submissionRepository.createSubmission(submissionData);
+  const folderPath = await createSubmissionFile(
+    submission.id,
+    submission.source_code,
+  );
+
   try {
-    const submission =
-      await submissionRepository.createSubmission(submissionData);
-    const folderPath = await createSubmissionFile(
-      submission.id,
-      submission.source_code,
-    );
-
     await compileCppCode(folderPath);
-
-    const testCases = await testCaseRepository.fetchAllTestCases(
-      submission.problem_id,
-    );
-    for (const testCase of testCases) {
-      await createInputFile(folderPath, testCase.question_input);
-      const output = await runCppCode(folderPath);
-      const result = compareOutput(output, testCase.expected_output);
-      if (!result) {
-        await submissionRepository.updateSubmissionStatus(
-          submission.id,
-          "Wrong Answer",
-        );
-        return;
-      }
-      console.log(output);
-    }
+  } catch (error) {
     await submissionRepository.updateSubmissionStatus(
       submission.id,
-      "Accepted",
+      "Compilation Error",
     );
-
-    return submission;
-  } catch (err) {
-    console.error(err.message);
-    throw new Error("Failed to create submission");
+    return;
   }
+  const testCases = await testCaseRepository.fetchAllTestCases(
+    submission.problem_id,
+  );
+  for (const testCase of testCases) {
+    await createInputFile(folderPath, testCase.question_input);
+    const output = await runCppCode(folderPath);
+    const result = compareOutput(output, testCase.expected_output);
+    if (!result) {
+      await submissionRepository.updateSubmissionStatus(
+        submission.id,
+        "Wrong Answer",
+      );
+      return;
+    }
+    console.log(output);
+  }
+  await submissionRepository.updateSubmissionStatus(submission.id, "Accepted");
+
+  return submission;
 };
 
 module.exports = { createSubmission };
