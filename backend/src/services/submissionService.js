@@ -30,7 +30,16 @@ const createSubmission = async (submissionData) => {
   );
   for (const testCase of testCases) {
     await createInputFile(folderPath, testCase.question_input);
-    const output = await runCppCode(folderPath);
+    let output;
+    try {
+      output = await runCppCode(folderPath);
+    } catch (error) {
+      await submissionRepository.updateSubmissionStatus(
+        submission.id,
+        "Runtime Error",
+      );
+      return;
+    }
     const result = compareOutput(output, testCase.expected_output);
     if (!result) {
       await submissionRepository.updateSubmissionStatus(
