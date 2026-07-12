@@ -1,5 +1,6 @@
 const submissionRepository = require("../repositories/submissionRepository");
 const { createInputFile } = require("../utils/fileHandler");
+const { compareOutput } = require("../utils/outputComparator");
 
 const createSubmissionFile =
   require("../utils/fileHandler").createSubmissionFile;
@@ -21,8 +22,20 @@ const createSubmission = async (submissionData) => {
     for (const testCase of testCases) {
       await createInputFile(folderPath, testCase.question_input);
       const output = await executeCppCode(folderPath);
+      const result = compareOutput(output, testCase.expected_output);
+      if (!result) {
+        await submissionRepository.updateSubmissionStatus(
+          submission.id,
+          "Wrong Answer",
+        );
+        return;
+      }
       console.log(output);
     }
+    await submissionRepository.updateSubmissionStatus(
+      submission.id,
+      "Accepted",
+    );
 
     return submission;
   } catch (err) {

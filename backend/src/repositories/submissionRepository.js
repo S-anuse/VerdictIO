@@ -11,4 +11,12 @@ const createSubmission = async (submissionData) => {
   return result.rows[0];
 };
 
-module.exports = { createSubmission };
+const updateSubmissionStatus = async (submissionId, status) => {
+  const result = await pool.query(
+    "UPDATE submissions SET status = $1 where id = $2 RETURNING *;",
+    [status, submissionId],
+  );
+  return result.rows[0];
+};
+
+module.exports = { createSubmission, updateSubmissionStatus };
