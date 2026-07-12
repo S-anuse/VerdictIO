@@ -4,7 +4,7 @@ const { compareOutput } = require("../utils/outputComparator");
 
 const createSubmissionFile =
   require("../utils/fileHandler").createSubmissionFile;
-const { executeCppCode } = require("../utils/dockerExecutor");
+const { compileCppCode, runCppCode } = require("../utils/dockerExecutor");
 
 const testCaseRepository = require("../repositories/testCaseRepository");
 
@@ -16,12 +16,15 @@ const createSubmission = async (submissionData) => {
       submission.id,
       submission.source_code,
     );
+
+    await compileCppCode(folderPath);
+
     const testCases = await testCaseRepository.fetchAllTestCases(
       submission.problem_id,
     );
     for (const testCase of testCases) {
       await createInputFile(folderPath, testCase.question_input);
-      const output = await executeCppCode(folderPath);
+      const output = await runCppCode(folderPath);
       const result = compareOutput(output, testCase.expected_output);
       if (!result) {
         await submissionRepository.updateSubmissionStatus(
