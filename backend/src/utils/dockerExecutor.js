@@ -20,7 +20,7 @@ const runCppCode = async (submissionFolderPath) => {
   const command = `docker run --rm -v "${submissionFolderPath}:/app" cpp-runner bash -c "/app/main < /app/input.txt"`;
   console.log("running...");
   return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
+    exec(command, { timeout: 2000 }, (error, stdout, stderr) => {
       if (error) {
         console.log(error);
         return reject(error);

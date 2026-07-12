@@ -34,10 +34,19 @@ const createSubmission = async (submissionData) => {
     try {
       output = await runCppCode(folderPath);
     } catch (error) {
-      await submissionRepository.updateSubmissionStatus(
-        submission.id,
-        "Runtime Error",
-      );
+      if (error.killed) {
+        // Time Limit Exceeded
+        await submissionRepository.updateSubmissionStatus(
+          submission.id,
+          "Time Limit Exceeded",
+        );
+      } else {
+        // Runtime Error
+        await submissionRepository.updateSubmissionStatus(
+          submission.id,
+          "Runtime Error",
+        );
+      }
       return;
     }
     const result = compareOutput(output, testCase.expected_output);
