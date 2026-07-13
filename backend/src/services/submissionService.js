@@ -20,6 +20,8 @@ const createSubmission = async (submissionData) => {
   );
 
   try {
+    await submissionRepository.updateSubmissionStatus(submission.id, "Running");
+    await new Promise((resolve) => setTimeout(resolve, 10000));
     try {
       await compileCppCode(folderPath);
     } catch (error) {
