@@ -17,4 +17,16 @@ const createInputFile = async (folderPath, input) => {
   const inputFilePath = path.join(folderPath, "input.txt");
   await fs.promises.writeFile(inputFilePath, input);
 };
-module.exports = { createSubmissionFile, createInputFile };
+
+const deleteSubmissionFolder = async (folderPath) => {
+  await fs.promises.rm(folderPath, {
+    recursive: true,
+    force: true,
+  });
+};
+
+module.exports = {
+  createSubmissionFile,
+  createInputFile,
+  deleteSubmissionFolder,
+};

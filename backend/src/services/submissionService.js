@@ -1,5 +1,8 @@
 const submissionRepository = require("../repositories/submissionRepository");
-const { createInputFile } = require("../utils/fileHandler");
+const {
+  createInputFile,
+  deleteSubmissionFolder,
+} = require("../utils/fileHandler");
 const { compareOutput } = require("../utils/outputComparator");
 
 const createSubmissionFile =
@@ -17,50 +20,62 @@ const createSubmission = async (submissionData) => {
   );
 
   try {
-    await compileCppCode(folderPath);
-  } catch (error) {
-    await submissionRepository.updateSubmissionStatus(
-      submission.id,
-      "Compilation Error",
-    );
-    return;
-  }
-  const testCases = await testCaseRepository.fetchAllTestCases(
-    submission.problem_id,
-  );
-  for (const testCase of testCases) {
-    await createInputFile(folderPath, testCase.question_input);
-    let output;
     try {
-      output = await runCppCode(folderPath);
+      await compileCppCode(folderPath);
     } catch (error) {
-      if (error.killed) {
-        // Time Limit Exceeded
-        await submissionRepository.updateSubmissionStatus(
-          submission.id,
-          "Time Limit Exceeded",
-        );
-      } else {
-        // Runtime Error
-        await submissionRepository.updateSubmissionStatus(
-          submission.id,
-          "Runtime Error",
-        );
-      }
-      return;
-    }
-    const result = compareOutput(output, testCase.expected_output);
-    if (!result) {
       await submissionRepository.updateSubmissionStatus(
         submission.id,
-        "Wrong Answer",
+        "Compilation Error",
       );
       return;
     }
-    console.log(output);
-  }
-  await submissionRepository.updateSubmissionStatus(submission.id, "Accepted");
 
+    const testCases = await testCaseRepository.fetchAllTestCases(
+      submission.problem_id,
+    );
+    for (const testCase of testCases) {
+      await createInputFile(folderPath, testCase.question_input);
+      let output;
+      try {
+        console.log(testCase.question_input);
+        output = await runCppCode(folderPath);
+      } catch (error) {
+        if (error.killed) {
+          // Time Limit Exceeded
+          await submissionRepository.updateSubmissionStatus(
+            submission.id,
+            "Time Limit Exceeded",
+          );
+          return;
+        } else {
+          // Runtime Error
+          await submissionRepository.updateSubmissionStatus(
+            submission.id,
+            "Runtime Error",
+          );
+          return;
+        }
+      }
+      const result = compareOutput(output, testCase.expected_output);
+      if (!result) {
+        await submissionRepository.updateSubmissionStatus(
+          submission.id,
+          "Wrong Answer",
+        );
+        return;
+      }
+      console.log(output);
+    }
+    await submissionRepository.updateSubmissionStatus(
+      submission.id,
+      "Accepted",
+    );
+  } catch (error) {
+    console.error(error);
+  } finally {
+    await deleteSubmissionFolder(folderPath);
+    return;
+  }
   return submission;
 };
 
