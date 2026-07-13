@@ -6,6 +6,7 @@ const PORT = process.env.PORT;
 const authRoutes = require("./routes/authRoutes");
 const problemRoutes = require("./routes/problemRoutes");
 const submissionRoutes = require("./routes/submissionRoutes");
+const { client } = require("./config/redis");
 
 app.use(express.json());
 app.use("/api/auth", authRoutes);
@@ -23,6 +24,16 @@ pool
   })
   .catch((err) => {
     console.error("❌ Database Connection Failed");
+    console.error(err.message);
+  });
+
+client
+  .connect()
+  .then(() => {
+    console.log("✅ Connected to Redis");
+  })
+  .catch((err) => {
+    console.error("❌ Redis Connection Failed");
     console.error(err.message);
   });
 

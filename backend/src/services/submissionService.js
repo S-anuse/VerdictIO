@@ -4,6 +4,7 @@ const {
   deleteSubmissionFolder,
 } = require("../utils/fileHandler");
 const { compareOutput } = require("../utils/outputComparator");
+const { submissionQueue } = require("../queue/submissionQueue");
 
 const createSubmissionFile =
   require("../utils/fileHandler").createSubmissionFile;
@@ -14,11 +15,21 @@ const testCaseRepository = require("../repositories/testCaseRepository");
 const createSubmission = async (submissionData) => {
   const submission =
     await submissionRepository.createSubmission(submissionData);
+  await submissionQueue.add("executeSubmission", {
+    submissionId: submission.id,
+  });
+  return submission;
+};
+
+const processSubmission = async (submissionId) => {
+  const submission = await submissionRepository.fetchSubmission(submissionId);
   const folderPath = await createSubmissionFile(
     submission.id,
     submission.source_code,
   );
 
+  console.log(submission);
+  console.log(folderPath);
   try {
     await submissionRepository.updateSubmissionStatus(submission.id, "Running");
     try {
@@ -77,7 +88,6 @@ const createSubmission = async (submissionData) => {
     await deleteSubmissionFolder(folderPath);
     return;
   }
-  return submission;
 };
 
-module.exports = { createSubmission };
+module.exports = { createSubmission, processSubmission };
