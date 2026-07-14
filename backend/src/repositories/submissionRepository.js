@@ -26,4 +26,16 @@ const fetchSubmission = async (submissionId) => {
   return result.rows[0];
 };
 
-module.exports = { createSubmission, updateSubmissionStatus, fetchSubmission };
+const fetchAllSubmissions = async (userid) => {
+  const result = await pool.query(
+    "SELECT * FROM submissions WHERE user_id = $1 ORDER BY created_at DESC;",
+    [userid],
+  );
+  return result.rows;
+};
+module.exports = {
+  createSubmission,
+  updateSubmissionStatus,
+  fetchSubmission,
+  fetchAllSubmissions,
+};

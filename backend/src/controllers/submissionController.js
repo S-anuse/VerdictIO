@@ -33,4 +33,23 @@ const getSubmission = async (req, res) => {
     res.status(500).json({ error: "Failed to load submissions" });
   }
 };
-module.exports = { createSubmission, getSubmission };
+
+const fetchAllSubmissions = async (req, res) => {
+  const userid = req.user.id;
+  try {
+    const result = await submissionService.fetchAllSubmissions(userid);
+    if (result.length > 0) {
+      return res
+        .status(200)
+        .json({ message: "Successfully retrieved", result });
+    } else {
+      return res
+        .status(404)
+        .json({ message: "No submission found for this user" });
+    }
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ error: "Failed to retrieve data" });
+  }
+};
+module.exports = { createSubmission, getSubmission, fetchAllSubmissions };
