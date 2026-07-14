@@ -2,6 +2,7 @@ const pool = require("../config/db");
 
 async function createProblem(problemData) {
   const {
+    id,
     title,
     description,
     difficulty,

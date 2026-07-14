@@ -31,9 +31,7 @@ async function getAllProblems(req, res) {
 async function getProblem(req, res) {
   try {
     const problem = await problemService.getProblem(req.params.id);
-    res.status(200).json({
-      message: problem,
-    });
+    res.status(200).json(problem);
   } catch (error) {
     if (error.message === "Problem not found") {
       res.status(404).json({
