@@ -3,6 +3,10 @@ const testCaseRepository = require("../repositories/testCaseRepository");
 async function createTestCase(problemData) {
   return await testCaseRepository.createTestCase(problemData);
 }
+const getTestCase = async (problemId) => {
+  return await testCaseRepository.fetchAllTestCases(problemId);
+};
 module.exports = {
   createTestCase,
+  getTestCase,
 };

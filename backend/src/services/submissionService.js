@@ -50,7 +50,8 @@ const processSubmission = async (submissionId) => {
       let output;
       try {
         console.log(testCase.question_input);
-        output = await runCppCode(folderPath);
+        const containerName = `submission-${submission.id}`;
+        output = await runCppCode(folderPath, containerName);
       } catch (error) {
         if (error.killed) {
           // Time Limit Exceeded
@@ -96,7 +97,52 @@ const getSubmission = async (submissionId) => {
 };
 
 const fetchAllSubmissions = async (userid) => {
-  const result = await submissionRepository.fetchAllSubmissions(userid) ;
-  return result ;
-}
-module.exports = { createSubmission, processSubmission, getSubmission , fetchAllSubmissions};
+  const result = await submissionRepository.fetchAllSubmissions(userid);
+  return result;
+};
+
+const runSourceCode = async (problemData) => {
+  const tempId = Date.now();
+  const containerName = `run-${tempId}`;
+  const folderPath = await createSubmissionFile(tempId, problemData.code);
+  await createInputFile(folderPath, problemData.input);
+  let output;
+  try {
+    try {
+      await compileCppCode(folderPath);
+    } catch (error) {
+      console.log(error);
+      return {
+        status: "Compilation Error",
+        error: error.stderr,
+      };
+    }
+    try {
+      output = await runCppCode(folderPath, containerName);
+    } catch (error) {
+      console.log(error);
+      if (error.killed) {
+        return {
+          status: "Time Limit Exceeded",
+        };
+      } else {
+        return {
+          status: "Runtime Error",
+        };
+      }
+    }
+  } finally {
+    await deleteSubmissionFolder(folderPath);
+  }
+  return {
+    status: "Success",
+    output: output,
+  };
+};
+module.exports = {
+  createSubmission,
+  processSubmission,
+  getSubmission,
+  fetchAllSubmissions,
+  runSourceCode,
+};

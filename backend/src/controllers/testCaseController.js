@@ -15,7 +15,16 @@ async function createTestCase(req, res) {
     res.status(500).json({ error: "Failed to create test case" });
   }
 }
-
+const getTestCase = async (req, res) => {
+  const problem_id = req.params.problemId;
+  try {
+    const testCases = await testCaseService.getTestCase(problem_id);
+    res.status(200).json(testCases);
+  } catch (error) {
+    res.status(404).json({ message: "No test case found" });
+  }
+};
 module.exports = {
   createTestCase,
+  getTestCase,
 };

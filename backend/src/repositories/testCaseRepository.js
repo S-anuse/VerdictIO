@@ -16,7 +16,6 @@ const fetchAllTestCases = async (problemId) => {
   );
   return result.rows;
 };
-
 module.exports = {
   createTestCase,
   fetchAllTestCases,

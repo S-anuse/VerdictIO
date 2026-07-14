@@ -57,4 +57,22 @@ const fetchAllSubmissions = async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve data" });
   }
 };
-module.exports = { createSubmission, getSubmission, fetchAllSubmissions };
+
+const runSourceCode = async (req, res) => {
+  const { sourceCode, sample_input, sample_output } = req.body;
+  const problemData = {
+    code: sourceCode,
+    input: sample_input,
+    output: sample_output,
+  };
+  const result = await submissionService.runSourceCode(problemData);
+  return res.status(200).json({
+    output: result,
+  });
+};
+module.exports = {
+  createSubmission,
+  getSubmission,
+  fetchAllSubmissions,
+  runSourceCode,
+};

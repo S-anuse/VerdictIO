@@ -19,20 +19,29 @@ const compileCppCode = async (submissionFolderPath) => {
   });
 };
 
-const runCppCode = async (submissionFolderPath) => {
-  const command = `docker run --rm -v "${submissionFolderPath}:/app" cpp-runner bash -c "/app/main < /app/input.txt"`;
+const runCppCode = async (submissionFolderPath, containerName) => {
+  const command = `docker run --name ${containerName} --rm -v "${submissionFolderPath}:/app" cpp-runner bash -c "/app/main < /app/input.txt"`;
+
   console.log("running...");
   console.log(command);
+
   return new Promise((resolve, reject) => {
     exec(command, { timeout: 2000 }, (error, stdout, stderr) => {
       if (error) {
+        if (error.killed) {
+          exec(`docker rm -f ${containerName}`);
+        }
+
         console.log("Error:", error);
         console.log("stdout:", stdout);
         console.log("stderr:", stderr);
+
         return reject(error);
       }
+
       console.log("stdout:", stdout);
       console.log("stderr:", stderr);
+
       resolve(stdout);
     });
   });
