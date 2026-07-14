@@ -18,15 +18,20 @@ const createSubmission = async (req, res) => {
 };
 
 const getSubmission = async (req, res) => {
+  const userid = req.user.id;
   try {
     const submissionId = req.params.id;
     const submission = await submissionService.getSubmission(submissionId);
     if (!submission) {
       return res.status(404).json({ message: "No submission yet" });
     } else {
-      return res
-        .status(200)
-        .json({ message: "Submission fetched successfully", submission });
+      if (submission.user_id != userid)
+        return res.status(403).json({ message: "This is not your submission" });
+      else {
+        return res
+          .status(200)
+          .json({ message: "Submission fetched successfully", submission });
+      }
     }
   } catch (error) {
     console.log(error.message);
