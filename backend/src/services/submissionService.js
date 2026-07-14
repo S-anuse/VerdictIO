@@ -90,4 +90,9 @@ const processSubmission = async (submissionId) => {
   }
 };
 
-module.exports = { createSubmission, processSubmission };
+const getSubmission = async (submissionId) => {
+  const result = await submissionRepository.fetchSubmission(submissionId);
+  return result;
+};
+
+module.exports = { createSubmission, processSubmission, getSubmission };
