@@ -23,6 +23,7 @@ int main() {
   const [customInput, setCustomInput] = useState("");
   const [customOutput, setCustomOutput] = useState("");
   const [runResult, setRunResult] = useState(null);
+  const [activeTab, setActiveTab] = useState("input");
 
   const fetchProblem = async () => {
     try {
@@ -60,6 +61,17 @@ int main() {
     }
 
     setRunResult(result);
+    setActiveTab("output");
+  };
+
+  const handleSubmitCode = async () => {
+    const data = {
+      problemId: id,
+      language,
+      source_code: code,
+    };
+    const response = await submissionApi.submit(data);
+    console.log(response.data);
   };
 
   useEffect(() => {
@@ -77,7 +89,7 @@ int main() {
     <div className="h-screen bg-slate-100 p-4">
       <div className="flex h-full gap-4">
         {/* Left Panel */}
-        <div className="w-1/2 bg-white rounded-xl shadow-lg p-6 overflow-y-auto">
+        <div className="w-1/2 bg-white rounded-2xl border border-gray-200 shadow-xl p-8 overflow-y-auto">
           <Link
             to="/problems"
             className="inline-flex items-center text-blue-600 hover:underline mb-6"
@@ -86,12 +98,12 @@ int main() {
           </Link>
 
           <div className="flex justify-between items-center border-b pb-4">
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-4xl font-bold tracking-tight text-gray-800">
               {problem.id}. {problem.title}
             </h1>
 
             <span
-              className={`px-4 py-1 rounded-full font-semibold ${
+              className={`px-5 py-1 shadow-sm rounded-full font-semibold ${
                 problem.difficulty === "Easy"
                   ? "bg-green-100 text-green-700"
                   : problem.difficulty === "Medium"
@@ -112,7 +124,7 @@ int main() {
           <section className="mt-8">
             <h2 className="text-xl font-semibold mb-3">Constraints</h2>
 
-            <pre className="bg-slate-100 rounded-lg p-4 whitespace-pre-wrap">
+            <pre className="bg-slate-100 rounded-xl p-5 font-mono text-sm whitespace-pre-wrap">
               {problem.problem_constraints}
             </pre>
           </section>
@@ -123,7 +135,7 @@ int main() {
             {sampleTestCases.map((sampleTestCase, index) => (
               <div
                 key={index}
-                className="border rounded-xl bg-slate-50 p-5 mb-5"
+                className="border border-gray-200 rounded-2xl bg-white shadow-sm p-6 mb-6"
               >
                 <h3 className="font-semibold mb-3">Sample {index + 1}</h3>
 
@@ -135,7 +147,7 @@ int main() {
 
                 <p className="font-medium">Output</p>
 
-                <pre className="bg-slate-100 rounded p-3">
+                <pre className="bg-slate-100 rounded-xl p-4 font-mono text-sm">
                   {sampleTestCase.expected_output}
                 </pre>
               </div>
@@ -144,11 +156,14 @@ int main() {
         </div>
 
         {/* Right Panel */}
-        <div className="w-1/2 bg-white rounded-xl shadow-lg flex flex-col">
-          <div className="border-b p-4 flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Code Editor</h2>
+        <div className="w-1/2 bg-white rounded-2xl border border-gray-200 shadow-xl flex flex-col h-full">
+          <div className="bg-slate-50 border-b border-gray-200 px-5 py-3 flex justify-between items-center">
+            <h2 className="text-xl font-bold tracking-wide text-gray-800">
+              Code Editor
+            </h2>
 
             <select
+              className="border border-gray-300 rounded-lg px-3 py-1 bg-white shadow-sm hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
             >
@@ -158,7 +173,7 @@ int main() {
             </select>
           </div>
 
-          <div className="h-[400px]">
+          <div className="flex-1 min-h-0">
             <Editor
               height="100%"
               language={language}
@@ -166,97 +181,133 @@ int main() {
               onChange={(value) => setCode(value || "")}
             />
           </div>
-          <div className="p-4">
-            <h3 className="font-semibold mb-2">Custom Input</h3>
+          <div className="border-t min-h-[60px]">
+            <div className="flex gap-3 mt-2">
+              <button
+                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-white py-1 rounded-xl font-semibold shadow-lg"
+                onClick={handleRunCode}
+              >
+                Run Code
+              </button>
 
-            <textarea
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              placeholder="Enter custom input..."
-              className="w-full border rounded-lg p-3"
-            />
-          </div>
-          <div className="p-4">
-            <h3 className="font-semibold mb-2">Expected Output</h3>
+              <button
+                className="flex-1 bg-gradient-to-r from-green-500 to-green-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-white py-1 rounded-xl font-semibold shadow-lg"
+                onClick={handleSubmitCode}
+              >
+                Submit
+              </button>
+            </div>
+            {/* Tabs */}
+            <div className="flex border-b">
+              <button
+                onClick={() => setActiveTab("input")}
+                className={`flex-1 py-1 font-semibold border-b-2 transition-all duration-200 ${
+                  activeTab === "input"
+                    ? "border-blue-600 text-blue-600 bg-blue-50"
+                    : "border-transparent text-gray-500 hover:text-blue-600"
+                }`}
+              >
+                Input
+              </button>
 
-            <textarea
-              value={customOutput}
-              onChange={(e) => setCustomOutput(e.target.value)}
-              placeholder="Enter expected output..."
-              className="w-full border rounded-lg p-3"
-            />
-          </div>
-          <div className="flex gap-4 p-4">
-            <button
-              className="flex-1 bg-blue-600 text-white px-5 py-2 rounded-lg"
-              onClick={handleRunCode}
-            >
-              Run Code
-            </button>
+              <button
+                onClick={() => setActiveTab("output")}
+                className={`flex-1 py-1 font-semibold border-b-2 transition-all duration-200 ${
+                  activeTab === "output"
+                    ? "border-blue-600 text-blue-600 bg-blue-50"
+                    : "border-transparent text-gray-500 hover:text-blue-600"
+                }`}
+              >
+                Output
+              </button>
+            </div>
 
-            <button className="flex-1 bg-green-600 text-white px-5 py-2 rounded-lg">
-              Submit
-            </button>
-          </div>
-          <div className="p-4">
-            <h3 className="font-semibold mb-2">Output</h3>
+            <div className="flex-1 overflow-y-auto p-4">
+              {activeTab === "input" ? (
+                <>
+                  <h3 className="font-semibold mb-2">Custom Input</h3>
 
-            <div className="bg-slate-100 rounded-lg p-3 min-h-[120px]">
-              {runResult ? (
-                runResult.status !== "Success" ? (
-                  <p className="text-red-600 font-bold">{runResult.status}</p>
-                ) : runResult.results ? (
-                  runResult.results.map((result) => (
-                    <div
-                      key={result.sample}
-                      className="border-b border-gray-300 mb-4 pb-4"
-                    >
-                      <p className="font-bold mb-2">Sample {result.sample}</p>
+                  <textarea
+                    value={customInput}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    placeholder="Enter custom input..."
+                    className="w-full h-14 bg-slate-50 border border-gray-300 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
 
-                      <p className="font-semibold">Your Output</p>
-                      <pre className="mb-3 whitespace-pre-wrap">
-                        {result.actualOutput || "No Output"}
-                      </pre>
+                  <h3 className="font-semibold mt-2 mb-2">Expected Output</h3>
 
-                      <p className="font-semibold">Expected Output</p>
-                      <pre className="mb-3 whitespace-pre-wrap">
-                        {result.expectedOutput || "No Expected Output"}
-                      </pre>
-
-                      <p
-                        className={`font-bold ${
-                          result.passed ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {result.passed ? "✅ Passed" : "❌ Failed"}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <>
-                    <p className="font-semibold">Your Output</p>
-
-                    <pre className="mb-4 whitespace-pre-wrap">
-                      {runResult.actualOutput || "No Output"}
-                    </pre>
-
-                    <p className="font-semibold">Expected Output</p>
-
-                    <pre className="mb-4 whitespace-pre-wrap">
-                      {runResult.expectedOutput || "No Expected Output"}
-                    </pre>
-
-                    <p
-                      className={`font-bold ${
-                        runResult.passed ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {runResult.passed ? "✅ Passed" : "❌ Failed"}
-                    </p>
-                  </>
-                )
+                  <textarea
+                    value={customOutput}
+                    onChange={(e) => setCustomOutput(e.target.value)}
+                    placeholder="Enter expected output..."
+                    className="w-full h-14 bg-slate-50 border border-gray-300 rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </>
               ) : (
-                <p>No output yet.</p>
+                <div className="h-48 overflow-y-auto bg-slate-50 border border-gray-200 rounded-xl p-4 shadow-inner">
+                  {runResult ? (
+                    runResult.status !== "Success" ? (
+                      <p className="text-red-600 font-bold">
+                        {runResult.status}
+                      </p>
+                    ) : runResult.results ? (
+                      runResult.results.map((result) => (
+                        <div
+                          key={result.sample}
+                          className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 mb-4"
+                        >
+                          <p className="font-bold mb-2">
+                            Sample {result.sample}
+                          </p>
+
+                          <p>
+                            <b>Your Output:</b>
+                          </p>
+
+                          <pre>{result.actualOutput}</pre>
+
+                          <p className="mt-2">
+                            <b>Expected Output:</b>
+                          </p>
+
+                          <pre>{result.expectedOutput}</pre>
+
+                          <span
+                            className={`inline-block mt-3 px-4 py-1 rounded-full text-sm font-bold ${
+                              result.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {result.passed ? "✅ Passed" : "❌ Failed"}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        <p>
+                          <b>Your Output</b>
+                        </p>
+
+                        <pre>{runResult.actualOutput}</pre>
+
+                        <p className="mt-2">
+                          <b>Expected Output</b>
+                        </p>
+
+                        <pre>{runResult.expectedOutput}</pre>
+
+                        <span
+                          className={`inline-block mt-3 px-4 py-1 rounded-full text-sm font-bold ${
+                            runResult.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {runResult.passed ? "✅ Passed" : "❌ Failed"}
+                        </span>
+                      </>
+                    )
+                  ) : (
+                    <p>No output yet.</p>
+                  )}
+                </div>
               )}
             </div>
           </div>
