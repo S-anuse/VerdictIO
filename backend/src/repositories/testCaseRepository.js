@@ -16,7 +16,16 @@ const fetchAllTestCases = async (problemId) => {
   );
   return result.rows;
 };
+
+const fetchSampleTestCases = async (problemId) => {
+  const result = await pool.query(
+    "SELECT * FROM test_cases WHERE problem_id = $1 AND is_hidden = false ;",
+    [problemId],
+  );
+  return result.rows;
+};
 module.exports = {
   createTestCase,
   fetchAllTestCases,
+  fetchSampleTestCases,
 };

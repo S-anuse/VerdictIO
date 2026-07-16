@@ -59,16 +59,17 @@ const fetchAllSubmissions = async (req, res) => {
 };
 
 const runSourceCode = async (req, res) => {
-  const { sourceCode, sample_input, sample_output } = req.body;
+  const { problemId, language, sourceCode, input, expectedOutput } = req.body;
   const problemData = {
+    problemId,
+    language,
     code: sourceCode,
-    input: sample_input,
-    output: sample_output,
+    input,
+    expectedOutput,
   };
   const result = await submissionService.runSourceCode(problemData);
-  return res.status(200).json({
-    output: result,
-  });
+
+  return res.status(200).json(result);
 };
 module.exports = {
   createSubmission,
