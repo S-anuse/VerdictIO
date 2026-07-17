@@ -28,7 +28,7 @@ const fetchSubmission = async (submissionId) => {
 
 const fetchAllSubmissions = async (userid) => {
   const result = await pool.query(
-    "SELECT * FROM submissions WHERE user_id = $1 ORDER BY created_at DESC;",
+    "SELECT s.id, p.title, s.language, s.status, s.created_at FROM submissions s JOIN problems p ON s.problem_id = p.id WHERE s.user_id = $1 ORDER BY s.created_at DESC;",
     [userid],
   );
   return result.rows;

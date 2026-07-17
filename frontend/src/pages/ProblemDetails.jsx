@@ -24,6 +24,8 @@ int main() {
   const [customOutput, setCustomOutput] = useState("");
   const [runResult, setRunResult] = useState(null);
   const [activeTab, setActiveTab] = useState("input");
+  const [submissionResult, setSubmissionResult] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchProblem = async () => {
     try {
@@ -38,6 +40,7 @@ int main() {
   };
 
   const handleRunCode = async () => {
+    setSubmissionResult(null);
     const data = {
       problemId: id,
       language,
@@ -64,20 +67,38 @@ int main() {
     setActiveTab("output");
   };
 
+  const pollSubmission = (submissionId) => {
+    const interval = setInterval(async () => {
+      const response = await submissionApi.getSubmission(submissionId);
+      const submission = response.data.submission;
+      console.log(submission.status);
+      setSubmissionResult(submission);
+
+      if (submission.status !== "Pending" && submission.status !== "Running") {
+        clearInterval(interval);
+        setIsSubmitting(false);
+      }
+    }, 2000);
+  };
+
   const handleSubmitCode = async () => {
+    setRunResult(null);
+    setActiveTab("output");
     const data = {
       problemId: id,
       language,
       source_code: code,
     };
+    setIsSubmitting(true);
     const response = await submissionApi.submit(data);
-    console.log(response.data);
+    const submissionId = response.data.submission.id;
+    pollSubmission(submissionId);
+    console.log("Submission ID:", submissionId);
   };
 
   useEffect(() => {
     fetchProblem();
   }, [id]);
-  console.log(id);
 
   if (loading) return <h1>Loading...</h1>;
 
@@ -193,8 +214,9 @@ int main() {
               <button
                 className="flex-1 bg-gradient-to-r from-green-500 to-green-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-white py-1 rounded-xl font-semibold shadow-lg"
                 onClick={handleSubmitCode}
+                disabled={isSubmitting}
               >
-                Submit
+                {isSubmitting ? "Submitting..." : "Submit"}
               </button>
             </div>
             {/* Tabs */}
@@ -274,7 +296,9 @@ int main() {
 
                           <span
                             className={`inline-block mt-3 px-4 py-1 rounded-full text-sm font-bold ${
-                              result.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                              result.passed
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
                             }`}
                           >
                             {result.passed ? "✅ Passed" : "❌ Failed"}
@@ -297,13 +321,40 @@ int main() {
 
                         <span
                           className={`inline-block mt-3 px-4 py-1 rounded-full text-sm font-bold ${
-                            runResult.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                            runResult.passed
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
                           }`}
                         >
                           {runResult.passed ? "✅ Passed" : "❌ Failed"}
                         </span>
                       </>
                     )
+                  ) : submissionResult ? (
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
+                      <h3 className="font-bold mb-4">Submission Result</h3>
+                      <p>
+                        <b>Status:</b> {submissionResult.status}
+                      </p>
+                      <p className="mt-2">
+                        <b>Language:</b> {submissionResult.language}
+                      </p>
+                      <p className="mt-2">
+                        <b>Submission ID:</b> {submissionResult.id}
+                      </p>
+                      <span
+                        className={`inline-block mt-4 px-4 py-1 rounded-full font-bold ${
+                          submissionResult.status === "Accepted"
+                            ? "bg-green-100 text-green-700"
+                            : submissionResult.status === "Running" ||
+                                submissionResult.status === "Pending"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {submissionResult.status}
+                      </span>
+                    </div>
                   ) : (
                     <p>No output yet.</p>
                   )}
