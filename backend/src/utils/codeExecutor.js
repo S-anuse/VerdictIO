@@ -44,8 +44,14 @@ const executeCpp = async (folder) => {
 
 const executePython = async (folder, input = "") => {
   const inputPath = path.join(folder, "input.txt");
-  fs.writeFileSync(inputPath, input); // Ensure input is written
+
+  // Always write input file
+  fs.writeFileSync(inputPath, input + "\n");
+
   const runCmd = `python3 ${folder}/main.py < ${folder}/input.txt`;
+
+  console.log("Running Python with input:", input);
+
   return await runCommand(runCmd, "Runtime Error");
 };
 
