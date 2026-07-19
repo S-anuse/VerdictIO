@@ -26,6 +26,7 @@ const processSubmission = async (submissionId) => {
   const folderPath = await createSubmissionFile(
     submission.id,
     submission.source_code,
+    submission.language, // Pass language
   );
 
   console.log(submission);
@@ -95,7 +96,12 @@ const processSubmission = async (submissionId) => {
 
 const runSourceCode = async (problemData) => {
   const tempId = Date.now();
-  const folderPath = await createSubmissionFile(tempId, problemData.code);
+  const folderPath = await createSubmissionFile(
+    tempId,
+    problemData.id,
+    problemData.source_code,
+    problemData.language, // Pass language
+  );
 
   try {
     // Write input file before execution

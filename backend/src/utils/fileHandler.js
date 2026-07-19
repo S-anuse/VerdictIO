@@ -1,15 +1,28 @@
 const fs = require("fs");
 const path = require("path");
 
-const createSubmissionFile = async (submissionId, sourceCode) => {
+const createSubmissionFile = async (
+  submissionId,
+  sourceCode,
+  language = "cpp",
+) => {
   const folderPath = path.join(
     __dirname,
     "../../temp",
     `submission-${submissionId}`,
   );
   await fs.promises.mkdir(folderPath, { recursive: true });
-  const filePath = path.join(folderPath, "main.cpp");
+
+  const fileName =
+    language.toLowerCase() === "python"
+      ? "main.py"
+      : language.toLowerCase() === "javascript"
+        ? "main.js"
+        : "main.cpp";
+
+  const filePath = path.join(folderPath, fileName);
   await fs.promises.writeFile(filePath, sourceCode);
+
   return folderPath;
 };
 
