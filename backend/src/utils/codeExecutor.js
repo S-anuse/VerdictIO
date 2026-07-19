@@ -2,7 +2,6 @@ const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 
-// Main executor function
 const executeCode = async (
   submissionFolderPath,
   language,
@@ -20,7 +19,6 @@ const executeCode = async (
 
   const fullPath = path.join(submissionFolderPath, fileName);
 
-  // Write code to file
   fs.writeFileSync(fullPath, code);
 
   if (language === "cpp") {
@@ -36,9 +34,10 @@ const executeCode = async (
 
 const executeCpp = async (folder, input = "") => {
   const inputPath = path.join(folder, "input.txt");
-  fs.writeFileSync(inputPath, input + "\n");
 
-  const compileCmd = `g++ ${folder}/main.cpp -o ${folder}/main`;
+  fs.writeFileSync(inputPath, input.trim() + "\n");
+
+  const compileCmd = `g++ ${folder}/main.cpp -o ${folder}/main -O2`;
   const runCmd = `${folder}/main < ${folder}/input.txt`;
 
   await runCommand(compileCmd, "Compilation Error");
