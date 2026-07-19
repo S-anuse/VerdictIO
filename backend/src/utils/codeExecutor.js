@@ -34,14 +34,18 @@ const executeCode = async (
 
 const executeCpp = async (folder, input = "") => {
   const inputPath = path.join(folder, "input.txt");
-
-  fs.writeFileSync(inputPath, input.trim() + "\n");
+  fs.writeFileSync(inputPath, input.trim() + "\n\n");
 
   const compileCmd = `g++ ${folder}/main.cpp -o ${folder}/main -O2`;
-  const runCmd = `${folder}/main < ${folder}/input.txt`;
+  const runCmd = `${folder}/main < ${inputPath}`;
+
+  console.log("C++ Input:", input);
 
   await runCommand(compileCmd, "Compilation Error");
-  return await runCommand(runCmd, "Runtime Error");
+  const output = await runCommand(runCmd, "Runtime Error");
+
+  console.log("C++ Output:", output);
+  return output;
 };
 
 const executePython = async (folder, input = "") => {
