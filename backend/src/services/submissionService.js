@@ -7,7 +7,7 @@ const {
 
 const { compareOutput } = require("../utils/outputComparator");
 const { submissionQueue } = require("../queue/submissionQueue");
-const { executeCode } = require("../utils/codeExecutor"); // ← New Import
+const { executeCode } = require("../utils/codeExecutor");
 
 const testCaseRepository = require("../repositories/testCaseRepository");
 const testCaseService = require("./testCaseService");
