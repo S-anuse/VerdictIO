@@ -26,7 +26,7 @@ const executeCode = async (
   if (language === "cpp") {
     return await executeCpp(submissionFolderPath);
   } else if (language === "python") {
-    return await executePython(submissionFolderPath);
+    return await executePython(submissionFolderPath, input); // Pass input
   } else if (language === "javascript") {
     return await executeJavaScript(submissionFolderPath);
   } else {
@@ -42,7 +42,9 @@ const executeCpp = async (folder) => {
   return await runCommand(runCmd, "Runtime Error");
 };
 
-const executePython = async (folder) => {
+const executePython = async (folder, input = "") => {
+  const inputPath = path.join(folder, "input.txt");
+  fs.writeFileSync(inputPath, input); // Ensure input is written
   const runCmd = `python3 ${folder}/main.py < ${folder}/input.txt`;
   return await runCommand(runCmd, "Runtime Error");
 };
