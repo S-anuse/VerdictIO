@@ -25,12 +25,35 @@ async function createProblem(problemData) {
   );
   return result.rows[0];
 }
-async function getAllProblems() {
-  const result = await pool.query(
-    "SELECT id , title , difficulty FROM problems;",
-  );
+async function getAllProblems(search, difficulty) {
+  let query = `
+    SELECT
+      id,
+      title,
+      difficulty
+    FROM problems
+    WHERE 1 = 1
+  `;
+
+  const values = [];
+
+  if (search) {
+    query += ` AND title ILIKE $${values.length + 1}`;
+    values.push(`%${search}%`);
+  }
+
+  if (difficulty) {
+    query += ` AND difficulty = $${values.length + 1}`;
+    values.push(difficulty);
+  }
+
+  query += ` ORDER BY id`;
+
+  const result = await pool.query(query, values);
+
   return result.rows;
 }
+
 async function getProblem(problemId) {
   try {
     const result = await pool.query(

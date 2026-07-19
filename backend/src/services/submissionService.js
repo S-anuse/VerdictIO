@@ -186,10 +186,19 @@ const runSourceCode = async (problemData) => {
     await deleteSubmissionFolder(folderPath);
   }
 };
+
+const fetchProblemSubmissions = async (userId, problemId) => {
+  const result = await submissionRepository.fetchProblemSubmissions(
+    userId,
+    problemId,
+  );
+  return result;
+};
 module.exports = {
   createSubmission,
   processSubmission,
   getSubmission,
   fetchAllSubmissions,
   runSourceCode,
+  fetchProblemSubmissions,
 };

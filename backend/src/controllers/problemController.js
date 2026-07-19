@@ -17,9 +17,13 @@ async function createProblem(req, res) {
 
 async function getAllProblems(req, res) {
   try {
-    const problems = await problemService.getAllProblems();
+    const { search, difficulty } = req.query;
+
+    const problems = await problemService.getAllProblems(search, difficulty);
+
     res.status(200).json({
-      message: problems,
+      message: "Problems retrieved successfully",
+      result: problems,
     });
   } catch (error) {
     res.status(500).json({
@@ -28,6 +32,7 @@ async function getAllProblems(req, res) {
     });
   }
 }
+
 async function getProblem(req, res) {
   try {
     const problem = await problemService.getProblem(req.params.id);

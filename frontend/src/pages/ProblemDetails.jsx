@@ -26,6 +26,8 @@ int main() {
   const [activeTab, setActiveTab] = useState("input");
   const [submissionResult, setSubmissionResult] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTabDetails, setActiveTabDetails] = useState("description");
+  const [problemSubmissions, setProblemSubmissions] = useState([]);
 
   const fetchProblem = async () => {
     try {
@@ -77,6 +79,8 @@ int main() {
       if (submission.status !== "Pending" && submission.status !== "Running") {
         clearInterval(interval);
         setIsSubmitting(false);
+
+        fetchProblemSubmissions();
       }
     }, 2000);
   };
@@ -92,8 +96,15 @@ int main() {
     setIsSubmitting(true);
     const response = await submissionApi.submit(data);
     const submissionId = response.data.submission.id;
+    setActiveTabDetails("submissions");
+    fetchProblemSubmissions();
     pollSubmission(submissionId);
     console.log("Submission ID:", submissionId);
+  };
+
+  const fetchProblemSubmissions = async () => {
+    const response = await submissionApi.getProblemSubmissions(id);
+    setProblemSubmissions(response.data.result);
   };
 
   useEffect(() => {
@@ -136,44 +147,148 @@ int main() {
             </span>
           </div>
 
-          <section className="mt-8">
-            <h2 className="text-xl font-semibold mb-3">Description</h2>
+          <div className="flex border-b border-gray-200 mt-6">
+            <button
+              onClick={() => setActiveTabDetails("description")}
+              className={`px-6 py-3 font-semibold border-b-2 transition-all duration-200 ${
+                activeTabDetails === "description"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-blue-600"
+              }`}
+            >
+              Description
+            </button>
 
-            <p className="leading-7">{problem.description}</p>
-          </section>
+            <button
+              onClick={() => {
+                setActiveTabDetails("submissions");
+                fetchProblemSubmissions();
+              }}
+              className={`px-6 py-3 font-semibold border-b-2 transition-all duration-200 ${
+                activeTabDetails === "submissions"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-blue-600"
+              }`}
+            >
+              My Submissions
+            </button>
+          </div>
 
-          <section className="mt-8">
-            <h2 className="text-xl font-semibold mb-3">Constraints</h2>
+          {activeTabDetails === "description" && (
+            <>
+              <section className="mt-8">
+                <h2 className="text-xl font-semibold mb-3">Description</h2>
 
-            <pre className="bg-slate-100 rounded-xl p-5 font-mono text-sm whitespace-pre-wrap">
-              {problem.problem_constraints}
-            </pre>
-          </section>
+                <p className="leading-7">{problem.description}</p>
+              </section>
 
-          <section className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">Sample Test Cases</h2>
+              <section className="mt-8">
+                <h2 className="text-xl font-semibold mb-3">Constraints</h2>
 
-            {sampleTestCases.map((sampleTestCase, index) => (
-              <div
-                key={index}
-                className="border border-gray-200 rounded-2xl bg-white shadow-sm p-6 mb-6"
-              >
-                <h3 className="font-semibold mb-3">Sample {index + 1}</h3>
-
-                <p className="font-medium">Input</p>
-
-                <pre className="bg-slate-100 rounded p-3 mb-4">
-                  {sampleTestCase.question_input}
+                <pre className="bg-slate-100 rounded-xl p-5 font-mono text-sm whitespace-pre-wrap">
+                  {problem.problem_constraints}
                 </pre>
+              </section>
 
-                <p className="font-medium">Output</p>
+              <section className="mt-8">
+                <h2 className="text-xl font-semibold mb-4">
+                  Sample Test Cases
+                </h2>
 
-                <pre className="bg-slate-100 rounded-xl p-4 font-mono text-sm">
-                  {sampleTestCase.expected_output}
-                </pre>
-              </div>
-            ))}
-          </section>
+                {sampleTestCases.map((sampleTestCase, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-2xl bg-white shadow-sm p-6 mb-6"
+                  >
+                    <h3 className="font-semibold mb-3">Sample {index + 1}</h3>
+
+                    <p className="font-medium">Input</p>
+
+                    <pre className="bg-slate-100 rounded p-3 mb-4">
+                      {sampleTestCase.question_input}
+                    </pre>
+
+                    <p className="font-medium">Output</p>
+
+                    <pre className="bg-slate-100 rounded-xl p-4 font-mono text-sm">
+                      {sampleTestCase.expected_output}
+                    </pre>
+                  </div>
+                ))}
+              </section>
+            </>
+          )}
+          {activeTabDetails === "submissions" && (
+            <>
+              <h2 className="text-xl font-semibold mt-8 mb-4">
+                My Submissions
+              </h2>
+
+              {problemSubmissions.length === 0 ? (
+                <p className="text-gray-500">No submissions yet.</p>
+              ) : (
+                <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm mt-4">
+                  <table className="w-full border-collapse mt-4">
+                    <thead>
+                      <tr className="bg-gray-100 border-b">
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                          Language
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                          Submitted At
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {problemSubmissions.map((submission) => (
+                        <tr
+                          key={submission.id}
+                          className="border-b hover:bg-gray-50 transition"
+                        >
+                          <td className="px-4 py-3">
+                            <span
+                              className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                                submission.status === "Accepted"
+                                  ? "bg-green-100 text-green-700"
+                                  : submission.status === "Pending" ||
+                                      submission.status === "Running"
+                                    ? "bg-yellow-100 text-yellow-700"
+                                    : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {submission.status}
+                            </span>
+                          </td>
+
+                          <td className="px-4 py-3">
+                            {submission.language === "cpp"
+                              ? "C++"
+                              : submission.language === "java"
+                                ? "Java"
+                                : "Python"}
+                          </td>
+
+                          <td className="px-4 py-3">
+                            {new Date(submission.created_at).toLocaleString(
+                              "en-IN",
+                              {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              },
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Right Panel */}

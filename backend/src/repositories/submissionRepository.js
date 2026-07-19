@@ -33,9 +33,18 @@ const fetchAllSubmissions = async (userid) => {
   );
   return result.rows;
 };
+
+const fetchProblemSubmissions = async (userId, problemId) => {
+  const result = await pool.query(
+    "SELECT s.id, p.title, s.language, s.status, s.created_at FROM submissions s JOIN problems p ON s.problem_id = p.id WHERE s.user_id = $1 AND s.problem_id = $2 ORDER BY s.created_at DESC;",
+    [userId, problemId],
+  );
+  return result.rows;
+};
 module.exports = {
   createSubmission,
   updateSubmissionStatus,
   fetchSubmission,
   fetchAllSubmissions,
+  fetchProblemSubmissions,
 };

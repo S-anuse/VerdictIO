@@ -12,5 +12,14 @@ const getSubmission = async (id) => {
 const getAllSubmissions = async () => {
   return await axiosInstance.get("/submissions");
 };
+const getProblemSubmissions = async (problemId) => {
+  return await axiosInstance.get(`/submissions/problem/${problemId}`);
+};
 
-export default { runCode, submit, getSubmission, getAllSubmissions };
+export default {
+  runCode,
+  submit,
+  getSubmission,
+  getAllSubmissions,
+  getProblemSubmissions,
+};

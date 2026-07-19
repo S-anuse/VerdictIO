@@ -5,8 +5,8 @@ async function createProblem(problemData) {
   return newProblem;
 }
 
-async function getAllProblems() {
-  return await problemRepository.getAllProblems();
+async function getAllProblems(search, difficulty) {
+  return await problemRepository.getAllProblems(search, difficulty);
 }
 
 async function getProblem(problemId) {
