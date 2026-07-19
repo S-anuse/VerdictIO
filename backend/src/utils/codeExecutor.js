@@ -24,7 +24,7 @@ const executeCode = async (
   fs.writeFileSync(fullPath, code);
 
   if (language === "cpp") {
-    return await executeCpp(submissionFolderPath);
+    return await executeCpp(submissionFolderPath, input);
   } else if (language === "python") {
     return await executePython(submissionFolderPath, input); // Pass input
   } else if (language === "javascript") {
@@ -34,7 +34,10 @@ const executeCode = async (
   }
 };
 
-const executeCpp = async (folder) => {
+const executeCpp = async (folder, input = "") => {
+  const inputPath = path.join(folder, "input.txt");
+  fs.writeFileSync(inputPath, input + "\n");
+
   const compileCmd = `g++ ${folder}/main.cpp -o ${folder}/main`;
   const runCmd = `${folder}/main < ${folder}/input.txt`;
 
@@ -62,7 +65,7 @@ const executeJavaScript = async (folder) => {
 
 const runCommand = (command, errorType) => {
   return new Promise((resolve, reject) => {
-    exec(command, { timeout: 3000 }, (error, stdout, stderr) => {
+    exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
       if (error) {
         if (error.code === 124 || error.killed) {
           return reject({ killed: true, message: "Time Limit Exceeded" });
