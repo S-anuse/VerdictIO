@@ -98,6 +98,11 @@ const runSourceCode = async (problemData) => {
   const folderPath = await createSubmissionFile(tempId, problemData.code);
 
   try {
+    // Write input file before execution
+    if (problemData.input) {
+      await createInputFile(folderPath, problemData.input);
+    }
+
     const output = await executeCode(
       folderPath,
       problemData.language.toLowerCase(),
