@@ -98,9 +98,8 @@ const runSourceCode = async (problemData) => {
   const tempId = Date.now();
   const folderPath = await createSubmissionFile(
     tempId,
-    problemData.id,
-    problemData.source_code,
-    problemData.language, // Pass language
+    problemData.code, // sourceCode
+    problemData.language, // language
   );
 
   try {
