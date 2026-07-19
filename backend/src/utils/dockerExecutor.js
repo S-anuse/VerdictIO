@@ -1,47 +1,40 @@
 const { exec } = require("child_process");
 
 const compileCppCode = async (submissionFolderPath) => {
-  const command = `docker run --rm -v "${submissionFolderPath}:/app" cpp-runner bash -c "rm -f /app/main && g++ /app/main.cpp -o /app/main"`;
-  console.log("compiling...");
+  const command = `g++ ${submissionFolderPath}/main.cpp -o ${submissionFolderPath}/main`;
+  console.log("Compiling C++...");
+
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
-        console.log("Compilation Error:");
-        console.log(error);
-        console.log("stdout:", stdout);
-        console.log("stderr:", stderr);
-        return reject(error);
+        console.error("Compilation Error:", stderr);
+        return reject({
+          stderr: stderr || error.message,
+          status: "Compilation Error",
+        });
       }
-      console.log("stdout:", stdout);
-      console.log("stderr:", stderr);
+      console.log("C++ Compilation Successful");
       resolve(stdout);
     });
   });
 };
 
-const runCppCode = async (submissionFolderPath, containerName) => {
-  const command = `docker run --name ${containerName} --rm -v "${submissionFolderPath}:/app" cpp-runner bash -c "/app/main < /app/input.txt"`;
-
-  console.log("running...");
-  console.log(command);
+const runCppCode = async (submissionFolderPath) => {
+  const command = `${submissionFolderPath}/main < ${submissionFolderPath}/input.txt`;
+  console.log("Running C++ code...");
 
   return new Promise((resolve, reject) => {
     exec(command, { timeout: 2000 }, (error, stdout, stderr) => {
       if (error) {
-        if (error.killed) {
-          exec(`docker rm -f ${containerName}`);
+        if (error.code === 124 || error.killed) {
+          return reject({ killed: true, message: "Time Limit Exceeded" });
         }
-
-        console.log("Error:", error);
-        console.log("stdout:", stdout);
-        console.log("stderr:", stderr);
-
-        return reject(error);
+        console.error("Runtime Error:", stderr || error.message);
+        return reject({
+          stderr: stderr || error.message,
+          status: "Runtime Error",
+        });
       }
-
-      console.log("stdout:", stdout);
-      console.log("stderr:", stderr);
-
       resolve(stdout);
     });
   });
