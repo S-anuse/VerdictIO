@@ -71,7 +71,13 @@ function SubmissionHistory() {
                   {submission.title}
                 </td>
                 <td className="border px-4 py-2 text-center">
-                  {submission.language}
+                  {submission.language === "cpp"
+                    ? "C++"
+                    : submission.language === "java"
+                      ? "Java"
+                      : submission.language === "javascript"
+                        ? "JavaScript"
+                        : submission.language.charAt(0).toUpperCase() + submission.language.slice(1)}
                 </td>
                 <td className="border px-4 py-2 text-center">
                   <span

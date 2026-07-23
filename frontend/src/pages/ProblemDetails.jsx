@@ -269,7 +269,9 @@ int main() {
                               ? "C++"
                               : submission.language === "java"
                                 ? "Java"
-                                : "Python"}
+                                : submission.language === "javascript"
+                                  ? "JavaScript"
+                                  : "Python"}
                           </td>
 
                           <td className="px-4 py-3">
@@ -306,6 +308,7 @@ int main() {
               <option value="cpp">C++</option>
               <option value="java">Java</option>
               <option value="python">Python</option>
+              <option value="javascript">JavaScript</option>
             </select>
           </div>
 

@@ -100,7 +100,9 @@ const Dashboard = () => {
                       ? "C++"
                       : submission.language === "java"
                         ? "Java"
-                        : "Python"}
+                        : submission.language === "javascript"
+                          ? "JavaScript"
+                          : "Python"}
                   </td>
 
                   <td className="px-4 py-3">
