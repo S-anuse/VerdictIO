@@ -45,7 +45,9 @@ const executeCpp = async (folder, input = "") => {
 
   console.log("C++ Input:", input);
 
-  await runCommand(compileCmd, "Compilation Error");
+  if (!fs.existsSync(mainExe)) {
+    await runCommand(compileCmd, "Compilation Error");
+  }
   const output = await runCommand(runCmd, "Runtime Error");
 
   console.log("C++ Output:", output);

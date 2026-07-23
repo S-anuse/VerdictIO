@@ -1,6 +1,7 @@
 const compareOutput = (actualOutput, expectedOutput) => {
   const normalize = (str) => {
-    return str.trim().replace(/\s+/g, " ").trim();
+    if (str === null || str === undefined) return "";
+    return str.toString().trim().replace(/\s+/g, " ").trim();
   };
 
   const normalizedActual = normalize(actualOutput);

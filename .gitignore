@@ -13,3 +13,7 @@ frontend/.env
 # Ignore OS-specific files
 .DS_Store
 Thumbs.db
+
+# Ignore temp folders
+temp/
+backend/temp/
