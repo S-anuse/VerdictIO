@@ -26,7 +26,7 @@ const executeCode = async (
   } else if (language === "python") {
     return await executePython(submissionFolderPath, input); // Pass input
   } else if (language === "javascript") {
-    return await executeJavaScript(submissionFolderPath);
+    return await executeJavaScript(submissionFolderPath, input);
   } else {
     throw new Error("Unsupported language");
   }
@@ -36,8 +36,12 @@ const executeCpp = async (folder, input = "") => {
   const inputPath = path.join(folder, "input.txt");
   fs.writeFileSync(inputPath, input.trim() + "\n\n");
 
-  const compileCmd = `g++ ${folder}/main.cpp -o ${folder}/main -O2`;
-  const runCmd = `${folder}/main < ${inputPath}`;
+  const isWin = process.platform === "win32";
+  const mainCpp = path.join(folder, "main.cpp");
+  const mainExe = path.join(folder, isWin ? "main.exe" : "main");
+
+  const compileCmd = `g++ "${mainCpp}" -o "${mainExe}" -O2`;
+  const runCmd = `"${mainExe}" < "${inputPath}"`;
 
   console.log("C++ Input:", input);
 
@@ -54,15 +58,25 @@ const executePython = async (folder, input = "") => {
   // Always write input file
   fs.writeFileSync(inputPath, input + "\n");
 
-  const runCmd = `python3 ${folder}/main.py < ${folder}/input.txt`;
+  const isWin = process.platform === "win32";
+  const pythonCmd = isWin ? "python" : "python3";
+  const mainPy = path.join(folder, "main.py");
+
+  const runCmd = `"${pythonCmd}" "${mainPy}" < "${inputPath}"`;
 
   console.log("Running Python with input:", input);
 
   return await runCommand(runCmd, "Runtime Error");
 };
 
-const executeJavaScript = async (folder) => {
-  const runCmd = `node ${folder}/main.js < ${folder}/input.txt`;
+const executeJavaScript = async (folder, input = "") => {
+  const inputPath = path.join(folder, "input.txt");
+
+  // Always write input file
+  fs.writeFileSync(inputPath, input + "\n");
+
+  const mainJs = path.join(folder, "main.js");
+  const runCmd = `node "${mainJs}" < "${inputPath}"`;
   return await runCommand(runCmd, "Runtime Error");
 };
 
