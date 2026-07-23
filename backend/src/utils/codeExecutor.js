@@ -15,7 +15,9 @@ const executeCode = async (
         ? "main.py"
         : language === "javascript"
           ? "main.js"
-          : "main.cpp";
+          : language === "java"
+            ? "Main.java"
+            : "main.cpp";
 
   const fullPath = path.join(submissionFolderPath, fileName);
 
@@ -27,6 +29,8 @@ const executeCode = async (
     return await executePython(submissionFolderPath, input); // Pass input
   } else if (language === "javascript") {
     return await executeJavaScript(submissionFolderPath, input);
+  } else if (language === "java") {
+    return await executeJava(submissionFolderPath, input);
   } else {
     throw new Error("Unsupported language");
   }
@@ -80,6 +84,31 @@ const executeJavaScript = async (folder, input = "") => {
   const mainJs = path.join(folder, "main.js");
   const runCmd = `node "${mainJs}" < "${inputPath}"`;
   return await runCommand(runCmd, "Runtime Error");
+};
+
+const executeJava = async (folder, input = "") => {
+  const inputPath = path.join(folder, "input.txt");
+
+  // Always write input file
+  fs.writeFileSync(inputPath, input.trim() + "\n\n");
+
+  const mainJava = path.join(folder, "Main.java");
+  const mainClass = "Main";
+
+  const compileCmd = `javac "${mainJava}"`;
+  const runCmd = `java -cp "${folder}" ${mainClass} < "${inputPath}"`;
+
+  console.log("Java Input:", input);
+
+  // Compile only if Main.class doesn't exist yet in the folder
+  const classPath = path.join(folder, "Main.class");
+  if (!fs.existsSync(classPath)) {
+    await runCommand(compileCmd, "Compilation Error");
+  }
+
+  const output = await runCommand(runCmd, "Runtime Error");
+  console.log("Java Output:", output);
+  return output;
 };
 
 const runCommand = (command, errorType) => {

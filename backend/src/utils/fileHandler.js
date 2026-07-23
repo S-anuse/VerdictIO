@@ -18,7 +18,9 @@ const createSubmissionFile = async (
       ? "main.py"
       : language.toLowerCase() === "javascript"
         ? "main.js"
-        : "main.cpp";
+        : language.toLowerCase() === "java"
+          ? "Main.java"
+          : "main.cpp";
 
   const filePath = path.join(folderPath, fileName);
   await fs.promises.writeFile(filePath, sourceCode);
