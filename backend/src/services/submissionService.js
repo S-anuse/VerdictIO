@@ -49,6 +49,7 @@ const processSubmission = async (submissionId) => {
           folderPath,
           submission.language.toLowerCase(),
           submission.source_code,
+          testCase.question_input,
         );
       } catch (error) {
         if (error.killed) {
@@ -103,22 +104,72 @@ const runSourceCode = async (problemData) => {
   );
 
   try {
-    // Write input file before execution
-    if (problemData.input) {
+    const hasCustomInput = problemData.input !== undefined && problemData.input !== null && problemData.input.trim() !== "";
+
+    if (hasCustomInput) {
       await createInputFile(folderPath, problemData.input);
+
+      const output = await executeCode(
+        folderPath,
+        problemData.language.toLowerCase(),
+        problemData.code,
+        problemData.input,
+      );
+
+      return {
+        status: "Success",
+        actualOutput: output,
+        expectedOutput: problemData.expectedOutput || "",
+        passed: problemData.expectedOutput
+          ? compareOutput(output, problemData.expectedOutput)
+          : true,
+      };
+    } else {
+      // Run against all sample test cases
+      const sampleTestCases = await testCaseRepository.fetchSampleTestCases(
+        problemData.problemId,
+      );
+
+      if (sampleTestCases && sampleTestCases.length > 0) {
+        const results = [];
+        for (let i = 0; i < sampleTestCases.length; i++) {
+          const testCase = sampleTestCases[i];
+          const output = await executeCode(
+            folderPath,
+            problemData.language.toLowerCase(),
+            problemData.code,
+            testCase.question_input || "",
+          );
+
+          results.push({
+            sample: i + 1,
+            actualOutput: output,
+            expectedOutput: testCase.expected_output,
+            passed: compareOutput(output, testCase.expected_output),
+          });
+        }
+
+        return {
+          status: "Success",
+          results,
+        };
+      } else {
+        // No sample test cases, run with empty input
+        const output = await executeCode(
+          folderPath,
+          problemData.language.toLowerCase(),
+          problemData.code,
+          "",
+        );
+
+        return {
+          status: "Success",
+          actualOutput: output,
+          expectedOutput: "",
+          passed: true,
+        };
+      }
     }
-
-    const output = await executeCode(
-      folderPath,
-      problemData.language.toLowerCase(),
-      problemData.code,
-      problemData.input || "",
-    );
-
-    return {
-      status: "Success",
-      actualOutput: output,
-    };
   } catch (error) {
     console.log(error);
     return {
