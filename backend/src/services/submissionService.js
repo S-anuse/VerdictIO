@@ -74,12 +74,6 @@ const processSubmission = async (submissionId) => {
         `Running test case ${i + 1}/${testCases.length}`
       );
 
-      // Write the test case input to input.txt.
-      await createInputFile(
-        folderPath,
-        testCase.question_input
-      );
-
       let output;
 
       try {
@@ -216,10 +210,6 @@ const runSourceCode = async (problemData) => {
       problemData.input.trim() !== "";
 
     if (hasCustomInput) {
-      await createInputFile(
-        folderPath,
-        problemData.input
-      );
 
       const output = await executeCode(
         folderPath,
