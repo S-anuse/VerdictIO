@@ -13,107 +13,219 @@ const testCaseRepository = require("../repositories/testCaseRepository");
 const testCaseService = require("./testCaseService");
 
 const createSubmission = async (submissionData) => {
+  // Save the submission first, then add it to the execution queue.
   const submission =
     await submissionRepository.createSubmission(submissionData);
+
   await submissionQueue.add("executeSubmission", {
     submissionId: submission.id,
   });
+
   return submission;
 };
 
 const processSubmission = async (submissionId) => {
-  const submission = await submissionRepository.fetchSubmission(submissionId);
-  const folderPath = await createSubmissionFile(
-    submission.id,
-    submission.source_code,
-    submission.language, // Pass language
-  );
-
-  console.log(submission);
-  console.log(folderPath);
+  let folderPath = null;
+  let submission = null;
 
   try {
-    await submissionRepository.updateSubmissionStatus(submission.id, "Running");
+    console.log(`Processing submission ${submissionId}`);
 
-    const testCases = await testCaseRepository.fetchAllTestCases(
-      submission.problem_id,
+    // Get the submission details from the database.
+    submission =
+      await submissionRepository.fetchSubmission(submissionId);
+
+    console.log("Submission fetched:", submission);
+
+    if (!submission) {
+      throw new Error(`Submission ${submissionId} not found`);
+    }
+
+    // Mark the submission as running before starting execution.
+    await submissionRepository.updateSubmissionStatus(
+      submission.id,
+      "Running"
     );
 
-    for (const testCase of testCases) {
-      await createInputFile(folderPath, testCase.question_input);
+    console.log(`Submission ${submission.id} is now Running`);
+
+    // Create a temporary folder for the submitted source code.
+    folderPath = await createSubmissionFile(
+      submission.id,
+      submission.source_code,
+      submission.language
+    );
+
+    console.log("Temporary folder created:", folderPath);
+
+    // Get all test cases for the selected problem.
+    const testCases =
+      await testCaseRepository.fetchAllTestCases(
+        submission.problem_id
+      );
+
+    console.log(`Found ${testCases.length} test cases`);
+
+    // Run the submitted code against each test case.
+    for (let i = 0; i < testCases.length; i++) {
+      const testCase = testCases[i];
+
+      console.log(
+        `Running test case ${i + 1}/${testCases.length}`
+      );
+
+      // Write the test case input to input.txt.
+      await createInputFile(
+        folderPath,
+        testCase.question_input
+      );
 
       let output;
+
       try {
-        console.log(testCase.question_input);
         output = await executeCode(
           folderPath,
           submission.language.toLowerCase(),
           submission.source_code,
-          testCase.question_input,
+          testCase.question_input
         );
+
+        console.log("Program output:", output);
+
       } catch (error) {
+        console.error("Execution error:", error);
+
         if (error.killed) {
           await submissionRepository.updateSubmissionStatus(
             submission.id,
-            "Time Limit Exceeded",
-          );
-          return;
-        } else if (error.status === "Compilation Error") {
-          await submissionRepository.updateSubmissionStatus(
-            submission.id,
-            "Compilation Error",
-          );
-          return;
-        } else {
-          await submissionRepository.updateSubmissionStatus(
-            submission.id,
-            "Runtime Error",
+            "Time Limit Exceeded"
           );
           return;
         }
-      }
 
-      const result = compareOutput(output, testCase.expected_output);
-      if (!result) {
+        if (error.status === "Compilation Error") {
+          await submissionRepository.updateSubmissionStatus(
+            submission.id,
+            "Compilation Error"
+          );
+          return;
+        }
+
+        if (error.status === "Memory Limit Exceeded") {
+          await submissionRepository.updateSubmissionStatus(
+            submission.id,
+            "Memory Limit Exceeded"
+          );
+          return;
+        }
+
         await submissionRepository.updateSubmissionStatus(
           submission.id,
-          "Wrong Answer",
+          "Runtime Error"
         );
+
         return;
       }
-      console.log(output);
+
+      // Compare the program output with the expected output.
+      const result = compareOutput(
+        output,
+        testCase.expected_output
+      );
+
+      console.log(
+        "Expected output:",
+        testCase.expected_output
+      );
+
+      if (!result) {
+        console.log("Wrong Answer");
+
+        await submissionRepository.updateSubmissionStatus(
+          submission.id,
+          "Wrong Answer"
+        );
+
+        return;
+      }
+
+      console.log(`Test case ${i + 1} passed`);
     }
 
+    // If every test case passes, mark the submission as accepted.
     await submissionRepository.updateSubmissionStatus(
       submission.id,
-      "Accepted",
+      "Accepted"
     );
+
+    console.log(`Submission ${submission.id} Accepted`);
+
   } catch (error) {
-    console.error(error);
+    console.error(
+      `Error while processing submission ${submissionId}:`,
+      error
+    );
+
+    // Prevent the submission from remaining in Pending state
+    // if an unexpected error occurs.
+    if (submission) {
+      try {
+        await submissionRepository.updateSubmissionStatus(
+          submission.id,
+          "Runtime Error"
+        );
+      } catch (statusError) {
+        console.error(
+          "Failed to update submission status:",
+          statusError
+        );
+      }
+    }
+
+    throw error;
+
   } finally {
-    await deleteSubmissionFolder(folderPath);
+    // Remove temporary files after execution is finished.
+    if (folderPath) {
+      try {
+        await deleteSubmissionFolder(folderPath);
+        console.log("Temporary submission folder deleted");
+      } catch (cleanupError) {
+        console.error(
+          "Failed to delete temporary folder:",
+          cleanupError
+        );
+      }
+    }
   }
 };
 
 const runSourceCode = async (problemData) => {
   const tempId = Date.now();
+
   const folderPath = await createSubmissionFile(
     tempId,
-    problemData.code, // sourceCode
-    problemData.language, // language
+    problemData.code,
+    problemData.language
   );
 
   try {
-    const hasCustomInput = problemData.input !== undefined && problemData.input !== null && problemData.input.trim() !== "";
+    const hasCustomInput =
+      problemData.input !== undefined &&
+      problemData.input !== null &&
+      problemData.input.trim() !== "";
 
     if (hasCustomInput) {
-      await createInputFile(folderPath, problemData.input);
+      await createInputFile(
+        folderPath,
+        problemData.input
+      );
 
       const output = await executeCode(
         folderPath,
         problemData.language.toLowerCase(),
         problemData.code,
-        problemData.input,
+        problemData.input
       );
 
       return {
@@ -121,61 +233,73 @@ const runSourceCode = async (problemData) => {
         actualOutput: output,
         expectedOutput: problemData.expectedOutput || "",
         passed: problemData.expectedOutput
-          ? compareOutput(output, problemData.expectedOutput)
+          ? compareOutput(
+            output,
+            problemData.expectedOutput
+          )
           : true,
       };
-    } else {
-      // Run against all sample test cases
-      const sampleTestCases = await testCaseRepository.fetchSampleTestCases(
-        problemData.problemId,
+    }
+
+    // Run the code using the sample test cases.
+    const sampleTestCases =
+      await testCaseRepository.fetchSampleTestCases(
+        problemData.problemId
       );
 
-      if (sampleTestCases && sampleTestCases.length > 0) {
-        const results = [];
-        for (let i = 0; i < sampleTestCases.length; i++) {
-          const testCase = sampleTestCases[i];
-          const output = await executeCode(
-            folderPath,
-            problemData.language.toLowerCase(),
-            problemData.code,
-            testCase.question_input || "",
-          );
+    if (sampleTestCases && sampleTestCases.length > 0) {
+      const results = [];
 
-          results.push({
-            sample: i + 1,
-            actualOutput: output,
-            expectedOutput: testCase.expected_output,
-            passed: compareOutput(output, testCase.expected_output),
-          });
-        }
+      for (let i = 0; i < sampleTestCases.length; i++) {
+        const testCase = sampleTestCases[i];
 
-        return {
-          status: "Success",
-          results,
-        };
-      } else {
-        // No sample test cases, run with empty input
         const output = await executeCode(
           folderPath,
           problemData.language.toLowerCase(),
           problemData.code,
-          "",
+          testCase.question_input || ""
         );
 
-        return {
-          status: "Success",
+        results.push({
+          sample: i + 1,
           actualOutput: output,
-          expectedOutput: "",
-          passed: true,
-        };
+          expectedOutput: testCase.expected_output,
+          passed: compareOutput(
+            output,
+            testCase.expected_output
+          ),
+        });
       }
+
+      return {
+        status: "Success",
+        results,
+      };
     }
+
+    // If there are no sample test cases, run with empty input.
+    const output = await executeCode(
+      folderPath,
+      problemData.language.toLowerCase(),
+      problemData.code,
+      ""
+    );
+
+    return {
+      status: "Success",
+      actualOutput: output,
+      expectedOutput: "",
+      passed: true,
+    };
+
   } catch (error) {
     console.log(error);
+
     return {
       status: error.status || "Error",
       error: error.stderr || error.message,
     };
+
   } finally {
     await deleteSubmissionFolder(folderPath);
   }
@@ -190,7 +314,10 @@ const fetchAllSubmissions = async (userid) => {
 };
 
 const fetchProblemSubmissions = async (userId, problemId) => {
-  return await submissionRepository.fetchProblemSubmissions(userId, problemId);
+  return await submissionRepository.fetchProblemSubmissions(
+    userId,
+    problemId
+  );
 };
 
 module.exports = {

@@ -1,8 +1,12 @@
-FROM gcc:14
-
-WORKDIR /app
+FROM node:20-bookworm-slim
 
 RUN apt-get update && apt-get install -y \
+    g++ \
+    python3 \
+    default-jdk \
+    coreutils \
     && rm -rf /var/lib/apt/lists/*
 
-CMD ["tail", "-f", "/dev/null"]
+WORKDIR /workspace
+
+CMD ["sleep", "infinity"]

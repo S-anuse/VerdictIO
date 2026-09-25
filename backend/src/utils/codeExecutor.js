@@ -1,149 +1,224 @@
-const { exec } = require("child_process");
-const path = require("path");
-const fs = require("fs");
+const { spawn } = require("child_process");
+
+const RUNNER_IMAGE = "verdictio-runner:latest";
+const TIME_LIMIT = 5;
+
+function dockerCommand(args, timeout = 10000) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("docker", args, {
+      windowsHide: true,
+    });
+
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, timeout);
+
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+
+    child.on("close", (code) => {
+      clearTimeout(timer);
+
+      resolve({
+        code,
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        timedOut,
+      });
+    });
+  });
+}
+
+const createContainer = async (containerName, folderPath) => {
+  const result = await dockerCommand([
+    "run",
+    "-d",
+    "--name",
+    containerName,
+
+    "--network",
+    "none",
+
+    "--memory",
+    "256m",
+
+    "--memory-swap",
+    "256m",
+
+    "--cpus",
+    "1.0",
+
+    "--pids-limit",
+    "64",
+
+    "--cap-drop",
+    "ALL",
+
+    "--security-opt",
+    "no-new-privileges",
+
+    "--mount",
+    `type=bind,source=${folderPath},target=/workspace`,
+
+    RUNNER_IMAGE,
+
+    "sleep",
+    "infinity",
+  ]);
+
+  if (result.code !== 0) {
+    throw new Error(`Container creation failed: ${result.stderr}`);
+  }
+};
+
+const removeContainer = async (containerName) => {
+  await dockerCommand(["rm", "-f", containerName]);
+};
+
+const executeInContainer = async (
+  containerName,
+  command,
+  timeout = 8000,
+) => {
+  const result = await dockerCommand(
+    [
+      "exec",
+      containerName,
+      "sh",
+      "-c",
+      command,
+    ],
+    timeout,
+  );
+
+  if (result.timedOut || result.code === 124) {
+    throw {
+      killed: true,
+      message: "Time Limit Exceeded",
+    };
+  }
+
+  return result;
+};
 
 const executeCode = async (
-  submissionFolderPath,
+  folderPath,
   language,
   code,
   input = "",
 ) => {
-  const fileName =
-    language === "cpp"
-      ? "main.cpp"
-      : language === "python"
-        ? "main.py"
-        : language === "javascript"
-          ? "main.js"
-          : language === "java"
-            ? "Main.java"
-            : "main.cpp";
+  let fileName;
 
-  const fullPath = path.join(submissionFolderPath, fileName);
+  if (language === "cpp") fileName = "main.cpp";
+  else if (language === "python") fileName = "main.py";
+  else if (language === "javascript") fileName = "main.js";
+  else if (language === "java") fileName = "Main.java";
+  else throw new Error("Unsupported language");
 
-  fs.writeFileSync(fullPath, code);
+  const fs = require("fs");
+  const path = require("path");
 
-  if (language === "cpp") {
-    return await executeCpp(submissionFolderPath, input);
-  } else if (language === "python") {
-    return await executePython(submissionFolderPath, input); // Pass input
-  } else if (language === "javascript") {
-    return await executeJavaScript(submissionFolderPath, input);
-  } else if (language === "java") {
-    return await executeJava(submissionFolderPath, input);
-  } else {
-    throw new Error("Unsupported language");
-  }
-};
+  fs.writeFileSync(
+    path.join(folderPath, fileName),
+    code,
+  );
 
-const executeCpp = async (folder, input = "") => {
-  const inputPath = path.join(folder, "input.txt");
-  fs.writeFileSync(inputPath, input.trim() + "\n\n");
+  fs.writeFileSync(
+    path.join(folderPath, "input.txt"),
+    input.trim() + "\n",
+  );
 
-  const isWin = process.platform === "win32";
-  const mainCpp = path.join(folder, "main.cpp");
-  const mainExe = path.join(folder, isWin ? "main.exe" : "main");
+  const containerName =
+    `verdictio-submission-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
 
-  const compileCmd = `g++ "${mainCpp}" -o "${mainExe}" -O2`;
-  const runCmd = `"${mainExe}" < "${inputPath}"`;
+  try {
+    // 1. Create container
+    await createContainer(containerName, folderPath);
 
-  console.log("C++ Input:", input);
+    // 2. Compile once
+    if (language === "cpp") {
+      const result = await executeInContainer(
+        containerName,
+        "g++ /workspace/main.cpp -O2 -std=c++17 -o /workspace/main",
+      );
 
-  if (!fs.existsSync(mainExe)) {
-    await runCommand(compileCmd, "Compilation Error");
-  }
-  const output = await runCommand(runCmd, "Runtime Error");
-
-  console.log("C++ Output:", output);
-  return output;
-};
-
-const executePython = async (folder, input = "") => {
-  const inputPath = path.join(folder, "input.txt");
-
-  // Always write input file
-  fs.writeFileSync(inputPath, input + "\n");
-
-  const isWin = process.platform === "win32";
-  const pythonCmd = isWin ? "python" : "python3";
-  const mainPy = path.join(folder, "main.py");
-
-  const runCmd = `"${pythonCmd}" "${mainPy}" < "${inputPath}"`;
-
-  console.log("Running Python with input:", input);
-
-  return await runCommand(runCmd, "Runtime Error");
-};
-
-const executeJavaScript = async (folder, input = "") => {
-  const inputPath = path.join(folder, "input.txt");
-
-  // Always write input file
-  fs.writeFileSync(inputPath, input + "\n");
-
-  const mainJs = path.join(folder, "main.js");
-  const runCmd = `node "${mainJs}" < "${inputPath}"`;
-  return await runCommand(runCmd, "Runtime Error");
-};
-
-const executeJava = async (folder, input = "") => {
-  const inputPath = path.join(folder, "input.txt");
-
-  // Always write input file
-  fs.writeFileSync(inputPath, input.trim() + "\n\n");
-
-  const mainJava = path.join(folder, "Main.java");
-  const mainClass = "Main";
-
-  const compileCmd = `javac "${mainJava}"`;
-  const runCmd = `java -cp "${folder}" ${mainClass} < "${inputPath}"`;
-
-  console.log("Java Input:", input);
-
-  // Compile only if Main.class doesn't exist yet in the folder
-  const classPath = path.join(folder, "Main.class");
-  if (!fs.existsSync(classPath)) {
-    await runCommand(compileCmd, "Compilation Error");
-  }
-
-  const output = await runCommand(runCmd, "Runtime Error");
-  console.log("Java Output:", output);
-  return output;
-};
-
-const runCommand = (command, errorType) => {
-  return new Promise((resolve, reject) => {
-    exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
-      if (error) {
-        if (error.code === 124 || error.killed) {
-          return reject({ killed: true, message: "Time Limit Exceeded" });
-        }
-        return reject({
-          stderr: stderr || error.message,
-          status: errorType,
-        });
+      if (result.code !== 0) {
+        throw {
+          status: "Compilation Error",
+          stderr: result.stderr,
+        };
       }
-      resolve(stdout.trim());
-    });
-  });
+    }
+
+    if (language === "java") {
+      const result = await executeInContainer(
+        containerName,
+        "javac /workspace/Main.java",
+      );
+
+      if (result.code !== 0) {
+        throw {
+          status: "Compilation Error",
+          stderr: result.stderr,
+        };
+      }
+    }
+
+    // 3. Run program
+    let runCommand;
+
+    if (language === "cpp") {
+      runCommand =
+        `timeout ${TIME_LIMIT}s /workspace/main < /workspace/input.txt`;
+    } else if (language === "python") {
+      runCommand =
+        `timeout ${TIME_LIMIT}s python3 /workspace/main.py < /workspace/input.txt`;
+    } else if (language === "javascript") {
+      runCommand =
+        `timeout ${TIME_LIMIT}s node /workspace/main.js < /workspace/input.txt`;
+    } else if (language === "java") {
+      runCommand =
+        `timeout ${TIME_LIMIT}s java -cp /workspace Main < /workspace/input.txt`;
+    }
+
+    const result = await executeInContainer(
+      containerName,
+      runCommand,
+      8000,
+    );
+
+    if (result.code !== 0) {
+      throw {
+        status: "Runtime Error",
+        stderr: result.stderr,
+      };
+    }
+
+    return result.stdout;
+
+  } finally {
+    // 4. Remove container
+    await removeContainer(containerName);
+  }
 };
 
 module.exports = {
   executeCode,
-  compileCppCode: (folder) =>
-    executeCode(
-      folder,
-      "cpp",
-      fs.readFileSync(path.join(folder, "main.cpp"), "utf-8"),
-    ),
-  runCppCode: async (folder) => {
-    // This is for run code button
-    const input = fs.readFileSync(path.join(folder, "input.txt"), "utf-8");
-    return executeCode(
-      folder,
-      "cpp",
-      fs.readFileSync(path.join(folder, "main.cpp"), "utf-8"),
-      input,
-    );
-  },
 };
