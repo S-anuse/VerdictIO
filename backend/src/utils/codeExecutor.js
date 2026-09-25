@@ -130,7 +130,6 @@ const runCommand = (command, errorType) => {
 
 module.exports = {
   executeCode,
-  // Keep old functions for backward compatibility
   compileCppCode: (folder) =>
     executeCode(
       folder,

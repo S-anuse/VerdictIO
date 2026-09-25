@@ -9,6 +9,7 @@ const submissionRoutes = require("./routes/submissionRoutes");
 const testCaseRoutes = require("./routes/testCaseRoutes");
 const dashboardRoute = require("./routes/dashboardRoutes");
 const profileRoutes = require("./routes/profileRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const { client } = require("./config/redis");
 const cors = require("cors");
 
@@ -25,6 +26,7 @@ app.use("/api/submissions", submissionRoutes);
 app.use("/api/testcases", testCaseRoutes);
 app.use("/api/dashboard", dashboardRoute);
 app.use("/api/profile", profileRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello World!");

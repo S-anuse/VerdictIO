@@ -1,23 +1,31 @@
 import { useState } from "react";
 import authApi from "../api/authApi";
-import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting:", { email, password });
+    setLoading(true);
     try {
       const response = await authApi.login({ email, password });
-      localStorage.setItem("token", response.data.token);
-      navigate("/problems");
+      login(response.data.token, response.data.user);
+      if (response.data.user?.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/problems");
+      }
     } catch (err) {
       console.log(err.response);
-      console.log(err.response?.data);
       alert(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
   return (

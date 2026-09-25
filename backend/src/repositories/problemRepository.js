@@ -2,7 +2,6 @@ const pool = require("../config/db");
 
 async function createProblem(problemData) {
   const {
-    id,
     title,
     description,
     difficulty,
@@ -12,25 +11,27 @@ async function createProblem(problemData) {
     created_by,
   } = problemData;
   const result = await pool.query(
-    "INSERT INTO problems (title , description , difficulty , problem_constraints , time_limit , memory_limit , created_by) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING * ;",
+    "INSERT INTO problems (title, description, difficulty, problem_constraints, time_limit, memory_limit, created_by) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING * ;",
     [
       title,
       description,
       difficulty,
       problem_constraints,
-      time_limit,
-      memory_limit,
+      time_limit || 2,
+      memory_limit || 256,
       created_by,
     ],
   );
   return result.rows[0];
 }
+
 async function getAllProblems(search, difficulty) {
   let query = `
     SELECT
       id,
       title,
-      difficulty
+      difficulty,
+      created_by
     FROM problems
     WHERE 1 = 1
   `;
@@ -56,35 +57,70 @@ async function getAllProblems(search, difficulty) {
 
 async function getProblem(problemId) {
   try {
-    const result = await pool.query(
-      "SELECT title , description , difficulty , problem_constraints , time_limit , memory_limit , question_input, expected_output FROM test_cases JOIN problems ON test_cases.problem_id = problems.id WHERE problems.id = $1 AND test_cases.is_hidden = false;",
-      [problemId],
+    const probRes = await pool.query(
+      "SELECT id, title, description, difficulty, problem_constraints, time_limit, memory_limit, created_by FROM problems WHERE id = $1;",
+      [problemId]
     );
-    if (result.rows.length === 0) {
+
+    if (probRes.rows.length === 0) {
       throw new Error("Problem not found");
     }
-    const response = {
-      problem: {
-        title: result.rows[0].title,
-        description: result.rows[0].description,
-        difficulty: result.rows[0].difficulty,
-        problem_constraints: result.rows[0].problem_constraints,
-        time_limit: result.rows[0].time_limit,
-        memory_limit: result.rows[0].memory_limit,
-      },
-      sampleTestCases: [],
-    };
 
-    for (const row of result.rows) {
-      response.sampleTestCases.push({
-        question_input: row.question_input,
-        expected_output: row.expected_output,
-      });
-    }
-    return response;
+    const testCasesRes = await pool.query(
+      "SELECT id, question_input, expected_output FROM test_cases WHERE problem_id = $1 AND is_hidden = false;",
+      [problemId]
+    );
+
+    return {
+      problem: probRes.rows[0],
+      sampleTestCases: testCasesRes.rows,
+    };
   } catch (error) {
     console.error(error);
     throw error;
   }
 }
-module.exports = { createProblem, getAllProblems, getProblem };
+
+async function updateProblem(problemId, problemData) {
+  const {
+    title,
+    description,
+    difficulty,
+    problem_constraints,
+    time_limit,
+    memory_limit,
+  } = problemData;
+
+  const result = await pool.query(
+    `UPDATE problems 
+     SET title = $1, description = $2, difficulty = $3, problem_constraints = $4, time_limit = $5, memory_limit = $6
+     WHERE id = $7 RETURNING *;`,
+    [
+      title,
+      description,
+      difficulty,
+      problem_constraints,
+      time_limit || 2,
+      memory_limit || 256,
+      problemId,
+    ]
+  );
+  return result.rows[0];
+}
+
+async function deleteProblem(problemId) {
+  await pool.query("DELETE FROM test_cases WHERE problem_id = $1;", [problemId]);
+  await pool.query("DELETE FROM submissions WHERE problem_id = $1;", [problemId]);
+  const result = await pool.query("DELETE FROM problems WHERE id = $1 RETURNING *;", [
+    problemId,
+  ]);
+  return result.rows[0];
+}
+
+module.exports = {
+  createProblem,
+  getAllProblems,
+  getProblem,
+  updateProblem,
+  deleteProblem,
+};

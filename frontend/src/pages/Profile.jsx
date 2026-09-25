@@ -153,8 +153,16 @@ const Profile = () => {
             </div>
 
             <div>
-              <p className="text-gray-500 text-sm">Role</p>
-              <p className="text-xl capitalize">{profile.role}</p>
+              <p className="text-gray-500 text-sm mb-1">Role</p>
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold border ${
+                  profile.role === "admin"
+                    ? "bg-purple-100 text-purple-800 border-purple-300"
+                    : "bg-slate-100 text-slate-800 border-slate-300"
+                }`}
+              >
+                {profile.role === "admin" ? "🛡️ Administrator" : "👤 Standard User"}
+              </span>
             </div>
           </div>
         )}

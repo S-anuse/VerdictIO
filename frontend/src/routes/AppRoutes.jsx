@@ -7,8 +7,10 @@ import ProblemDetails from "../pages/ProblemDetails";
 import SubmissionHistory from "../pages/SubmissionHistory";
 import Dashboard from "../pages/Dashboard";
 import Profile from "../pages/Profile";
+import AdminPortal from "../pages/AdminPortal";
 import NotFound from "../pages/NotFound";
 import ProtectedRoute from "../components/ProtectedRoute";
+import AdminRoute from "../components/AdminRoute";
 
 import Layout from "../components/Layout";
 function AppRoutes() {
@@ -30,6 +32,15 @@ function AppRoutes() {
           <Route path="/dashboard" element={<Dashboard />} />
 
           <Route path="/profile" element={<Profile />} />
+
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminPortal />
+              </AdminRoute>
+            }
+          />
         </Route>
       </Route>
 
